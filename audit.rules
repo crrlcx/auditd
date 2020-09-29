@@ -74,7 +74,7 @@
 
 ## Cron jobs fill the logs with stuff we normally don't want (works with SELinux)
 -a never,user -F subj_type=crond_t
--a exit,never -F subj_type=crond_t
+-a never,exit -F subj_type=crond_t
 
 ## This prevents chrony from overwhelming the logs
 -a never,exit -F arch=b64 -S adjtimex -F auid=unset -F uid=_chrony -F subj_type=chronyd_t
@@ -83,14 +83,14 @@
 -a always,exclude -F msgtype=CRYPTO_KEY_USER
 
 ## VMWare tools
--a exit,never -F arch=b32 -S fork -F success=0 -F path=/usr/lib/vmware-tools -F subj_type=initrc_t -F exit=-2
--a exit,never -F arch=b64 -S fork -F success=0 -F path=/usr/lib/vmware-tools -F subj_type=initrc_t -F exit=-2
+-a never,exit -F arch=b32 -S fork -F success=0 -F path=/usr/lib/vmware-tools -F subj_type=initrc_t -F exit=-2
+-a never,exit -F arch=b64 -S fork -F success=0 -F path=/usr/lib/vmware-tools -F subj_type=initrc_t -F exit=-2
 
 ### High Volume Event Filter (especially on Linux Workstations)
--a exit,never -F arch=b32 -F dir=/dev/shm -k sharedmemaccess
--a exit,never -F arch=b64 -F dir=/dev/shm -k sharedmemaccess
--a exit,never -F arch=b32 -F dir=/var/lock/lvm -k locklvm
--a exit,never -F arch=b64 -F dir=/var/lock/lvm -k locklvm
+-a never,exit -F arch=b32 -F dir=/dev/shm -k sharedmemaccess
+-a never,exit -F arch=b64 -F dir=/dev/shm -k sharedmemaccess
+-a never,exit -F arch=b32 -F dir=/var/lock/lvm -k locklvm
+-a never,exit -F arch=b64 -F dir=/var/lock/lvm -k locklvm
 
 ## More information on how to filter events
 ### https://access.redhat.com/solutions/2482221
@@ -114,8 +114,8 @@
 -a always,exit -F arch=b32 -S sys_kexec_load -k KEXEC
 
 ## Special files
--a exit,always -F arch=b32 -S mknod -S mknodat -k specialfiles
--a exit,always -F arch=b64 -S mknod -S mknodat -k specialfiles
+-a always,exit -F arch=b32 -S mknod -S mknodat -k specialfiles
+-a always,exit -F arch=b64 -S mknod -S mknodat -k specialfiles
 
 ## Mount operations (only attributable)
 -a always,exit -F arch=b64 -S mount -S umount2 -F auid!=-1 -k mount
@@ -126,8 +126,8 @@
 -a always,exit -F arch=b32 -S swapon -S swapoff -F auid!=-1 -k swap
 
 ## Time
--a exit,always -F arch=b32 -S adjtimex -S settimeofday -S clock_settime -k time
--a exit,always -F arch=b64 -S adjtimex -S settimeofday -S clock_settime -k time
+-a always,exit -F arch=b32 -S adjtimex -S settimeofday -S clock_settime -k time
+-a always,exit -F arch=b64 -S adjtimex -S settimeofday -S clock_settime -k time
 ### Local time zone
 -w /etc/localtime -p wa -k localtime
 
@@ -211,9 +211,10 @@
 -w /etc/security/namespace.conf -p wa -k pam
 -w /etc/security/namespace.init -p wa -k pam
 
-## Postfix configuration
+## Mail configuration
 -w /etc/aliases -p wa -k mail
 -w /etc/postfix/ -p wa -k mail
+-w /etc/exim4/ -p wa -k mail
 
 ## SSH configuration
 -w /etc/ssh/sshd_config -k sshd
@@ -226,14 +227,14 @@
 -w /etc/selinux/ -p wa -k mac_policy
 
 ## Critical elements access failures
--a exit,always -F arch=b64 -S open -F dir=/etc -F success=0 -k unauthedfileaccess
--a exit,always -F arch=b64 -S open -F dir=/bin -F success=0 -k unauthedfileaccess
--a exit,always -F arch=b64 -S open -F dir=/sbin -F success=0 -k unauthedfileaccess
--a exit,always -F arch=b64 -S open -F dir=/usr/bin -F success=0 -k unauthedfileaccess
--a exit,always -F arch=b64 -S open -F dir=/usr/sbin -F success=0 -k unauthedfileaccess
--a exit,always -F arch=b64 -S open -F dir=/var -F success=0 -k unauthedfileaccess
--a exit,always -F arch=b64 -S open -F dir=/home -F success=0 -k unauthedfileaccess
--a exit,always -F arch=b64 -S open -F dir=/srv -F success=0 -k unauthedfileaccess
+-a always,exit -F arch=b64 -S open -F dir=/etc -F success=0 -k unauthedfileaccess
+-a always,exit -F arch=b64 -S open -F dir=/bin -F success=0 -k unauthedfileaccess
+-a always,exit -F arch=b64 -S open -F dir=/sbin -F success=0 -k unauthedfileaccess
+-a always,exit -F arch=b64 -S open -F dir=/usr/bin -F success=0 -k unauthedfileaccess
+-a always,exit -F arch=b64 -S open -F dir=/usr/sbin -F success=0 -k unauthedfileaccess
+-a always,exit -F arch=b64 -S open -F dir=/var -F success=0 -k unauthedfileaccess
+-a always,exit -F arch=b64 -S open -F dir=/home -F success=0 -k unauthedfileaccess
+-a always,exit -F arch=b64 -S open -F dir=/srv -F success=0 -k unauthedfileaccess
 
 ## Process ID change (switching accounts) applications
 -w /bin/su -p x -k priv_esc
@@ -327,6 +328,7 @@
 -w /usr/sbin/nft -p x -k sbin_susp
 -w /usr/sbin/tcpdump -p x -k sbin_susp
 -w /usr/sbin/traceroute -p x -k sbin_susp
+-w /usr/sbin/ufw -p x -k sbin_susp
 
 ## Injection
 ### These rules watch for code injection by the ptrace facility.
@@ -354,8 +356,8 @@
 -w /usr/bin/dnf -p x -k software_mgmt
 
 # YAST/Zypper/RPM (SuSE)
--w /sbin/yast -p x -k yast
--w /sbin/yast2 -p x -k yast
+-w /sbin/yast -p x -k software_mgmt
+-w /sbin/yast2 -p x -k software_mgmt
 -w /bin/rpm -p x -k software_mgmt
 -w /usr/bin/zypper -k software_mgmt
 
@@ -365,6 +367,12 @@
 -w /usr/bin/apt-add-repository -p x -k software_mgmt
 -w /usr/bin/apt-get -p x -k software_mgmt
 -w /usr/bin/aptitude -p x -k software_mgmt
+-w /usr/bin/wajig -p x -k software_mgmt
+-w /usr/bin/snap -p x -k software_mgmt
+
+# PIP (Python installs)
+-w /usr/bin/pip -p x -k software_mgmt
+-w /usr/bin/pip3 -p x -k software_mgmt
 
 # Special Software ------------------------------------------------------------
 
@@ -372,7 +380,7 @@
 -w /etc/puppet/ssl -p wa -k puppet_ssl
 
 ## IBM Bigfix BESClient
--a exit,always -F arch=b64 -S open -F dir=/opt/BESClient -F success=0 -k soft_besclient
+-a always,exit -F arch=b64 -S open -F dir=/opt/BESClient -F success=0 -k soft_besclient
 -w /var/opt/BESClient/ -p wa -k soft_besclient
 
 ## CHEF https://www.chef.io/chef/
@@ -397,8 +405,8 @@
 ## Remove them if they cause to much volume in your environment
 
 ## Root command executions
--a exit,always -F arch=b64 -F euid=0 -S execve -k rootcmd
--a exit,always -F arch=b32 -F euid=0 -S execve -k rootcmd
+-a always,exit -F arch=b64 -F euid=0 -S execve -k rootcmd
+-a always,exit -F arch=b32 -F euid=0 -S execve -k rootcmd
 
 ## File Deletion Events by User
 -a always,exit -F arch=b32 -S rmdir -S unlink -S unlinkat -S rename -S renameat -F auid>=500 -F auid!=4294967295 -k delete
